@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#0c0f12]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Euchre Club</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Space Grotesk & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cardBg: '#161b22',
+                        cardBorder: '#262f3d',
+                        goldAccent: '#f59e0b',
+                        goldHover: '#d97706',
+                        emeraldAccent: '#10b981',
+                        emeraldHover: '#059669',
+                        darkBg: '#0c0f12'
+                    },
+                    fontFamily: {
+                        display: ['Space Grotesk', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom UI Tweaks & Scrollbar */
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0c0f12;
+            color: #f3f4f6;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0c0f12;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #262f3d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f59e0b;
+        }
+
+        .tab-btn.active {
+            color: #f59e0b;
+            border-bottom: 2px solid #f59e0b;
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%);
+        }
+
+        /* Glassmorphic card accents */
+        .glass-card {
+            background: rgba(22, 27, 34, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(38, 47, 61, 0.8);
+        }
+
+        .gold-glow {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+        }
+
+        /* Toast animation */
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-toast {
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen max-w-md mx-auto relative shadow-2xl bg-[#0c0f12] overflow-hidden border-x border-slate-800">
+
+    <!-- TOP APP HEADER -->
+    <header class="flex-none bg-cardBg/90 border-b border-cardBorder p-3.5 flex items-center justify-between z-30 backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-amber-500/20">
+                <i class="fa-solid fa-spade text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-display font-bold text-base tracking-wide text-white leading-none">THE EUCHRE CLUB</h1>
+                <span class="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase">Live Netting & Scores</span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <!-- Offline/Online Indicator -->
+            <div id="sync-status" class="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/30 flex items-center space-x-1.5 text-[11px]">
+                <span id="sync-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="sync-text" class="text-emerald-300 font-medium text-[10px]">Sync Active</span>
+            </div>
+            <button onclick="app.openSettingsModal()" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-300 transition">
+                <i class="fa-solid fa-gear text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT VIEWPORT -->
+    <main id="main-content" class="flex-1 overflow-y-auto p-4 pb-24 relative space-y-4">
+
+        <!-- ================= SECTION 1: PLAY NEW GAME ================= -->
+        <section id="tab-play" class="tab-content space-y-4">
+            <!-- Mode Switcher -->
+            <div class="flex rounded-xl bg-cardBg p-1 border border-cardBorder">
+                <button id="btn-mode-2v2" onclick="app.setPlayMode('2v2')" class="flex-1 py-2 text-xs font-bold font-display rounded-lg transition-all bg-goldAccent text-slate-950 shadow">
+                    2v2 Standard ($5/ea)
+                </button>
+                <button id="btn-mode-3p" onclick="app.setPlayMode('3p')" class="flex-1 py-2 text-xs font-bold font-display rounded-lg transition-all text-slate-400 hover:text-white">
+                    3-Player Cutthroat ($2/ea)
+                </button>
+            </div>
+
+            <!-- 2v2 Mode Form -->
+            <div id="panel-2v2" class="glass-card rounded-2xl p-4 space-y-4 border border-cardBorder shadow-xl">
+                <div class="flex justify-between items-center border-b border-cardBorder pb-2">
+                    <span class="font-display font-bold text-amber-400 text-xs tracking-wider uppercase"><i class="fa-solid fa-trophy mr-1.5"></i>2v2 Match Setup</span>
+                    <span class="text-[10px] text-emerald-400 font-mono bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">Payout: $5 to winners</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Team 1 -->
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 space-y-2">
+                        <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider block text-center">Team A</span>
+                        <select id="t1-p1" class="w-full bg-cardBg text-xs border border-cardBorder rounded-lg p-2 text-slate-200 focus:outline-none focus:border-goldAccent">
+                            <option value="">-- Player 1 --</option>
+                        </select>
+                        <select id="t1-p2" class="w-full bg-cardBg text-xs border border-cardBorder rounded-lg p-2 text-slate-200 focus:outline-none focus:border-goldAccent">
+                            <option value="">-- Player 2 --</option>
+                        </select>
+                        <div class="pt-2 text-center">
+                            <label class="text-[10px] text-slate-400 block mb-1">Score (0-10)</label>
+                            <input type="number" id="t1-score" min="0" max="10" value="0" class="w-16 text-center text-xl font-bold bg-cardBg border border-goldAccent/40 rounded-lg py-1 text-goldAccent mx-auto focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Team 2 -->
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 space-y-2">
+                        <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider block text-center">Team B</span>
+                        <select id="t2-p1" class="w-full bg-cardBg text-xs border border-cardBorder rounded-lg p-2 text-slate-200 focus:outline-none focus:border-goldAccent">
+                            <option value="">-- Player 1 --</option>
+                        </select>
+                        <select id="t2-p2" class="w-full bg-cardBg text-xs border border-cardBorder rounded-lg p-2 text-slate-200 focus:outline-none focus:border-goldAccent">
+                            <option value="">-- Player 2 --</option>
+                        </select>
+                        <div class="pt-2 text-center">
+                            <label class="text-[10px] text-slate-400 block mb-1">Score (0-10)</label>
+                            <input type="number" id="t2-score" min="0" max="10" value="0" class="w-16 text-center text-xl font-bold bg-cardBg border border-goldAccent/40 rounded-lg py-1 text-goldAccent mx-auto focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="app.submit2v2Match()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-display font-bold rounded-xl shadow-lg shadow-amber-500/20 transition transform active:scale-98 text-xs uppercase tracking-wider flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <span>Log Match & Transfer $10</span>
+                </button>
+            </div>
+
+            <!-- 3-Player Cutthroat Form -->
+            <div id="panel-3p" class="hidden glass-card rounded-2xl p-4 space-y-4 border border-cardBorder shadow-xl">
+                <div class="flex justify-between items-center border-b border-cardBorder pb-2">
+                    <span class="font-display font-bold text-amber-400 text-xs tracking-wider uppercase"><i class="fa-solid fa-users text-amber-400 mr-1.5"></i>3-Player Cutthroat</span>
+                    <span class="text-[10px] text-emerald-400 font-mono bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">Payout: $2 / opponent</span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 text-center space-y-1.5">
+                        <select id="cut-p1" class="w-full bg-cardBg text-xs border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                        <label class="text-[10px] text-slate-400 block">Tricks</label>
+                        <input type="number" id="cut-s1" min="0" max="10" value="0" class="w-12 text-center text-lg font-bold bg-cardBg border border-goldAccent/40 rounded-lg py-1 text-goldAccent mx-auto">
+                    </div>
+                    <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 text-center space-y-1.5">
+                        <select id="cut-p2" class="w-full bg-cardBg text-xs border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                        <label class="text-[10px] text-slate-400 block">Tricks</label>
+                        <input type="number" id="cut-s2" min="0" max="10" value="0" class="w-12 text-center text-lg font-bold bg-cardBg border border-goldAccent/40 rounded-lg py-1 text-goldAccent mx-auto">
+                    </div>
+                    <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 text-center space-y-1.5">
+                        <select id="cut-p3" class="w-full bg-cardBg text-xs border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                        <label class="text-[10px] text-slate-400 block">Tricks</label>
+                        <input type="number" id="cut-s3" min="0" max="10" value="0" class="w-12 text-center text-lg font-bold bg-cardBg border border-goldAccent/40 rounded-lg py-1 text-goldAccent mx-auto">
+                    </div>
+                </div>
+
+                <button onclick="app.submit3pMatch()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-display font-bold rounded-xl shadow-lg shadow-amber-500/20 transition transform active:scale-98 text-xs uppercase tracking-wider flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <span>Log Cutthroat Match</span>
+                </button>
+            </div>
+
+            <!-- Quick Recent Match Snippet -->
+            <div class="glass-card rounded-2xl p-3 border border-cardBorder space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="font-display font-bold text-slate-400 uppercase tracking-wider text-[11px]">Recent Activity</span>
+                    <i class="fa-solid fa-clock-rotate-left text-slate-500 text-xs"></i>
+                </div>
+                <div id="quick-log" class="space-y-1.5 text-xs text-slate-300">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 2: DEBTS & NETTING ================= -->
+        <section id="tab-debts" class="tab-content hidden space-y-4">
+            <div class="glass-card rounded-2xl p-4 border border-cardBorder shadow-xl space-y-4">
+                <div class="flex justify-between items-center border-b border-cardBorder pb-2">
+                    <div>
+                        <h2 class="font-display font-bold text-white text-sm tracking-wide">Automated Pairwise Debt Consolidation</h2>
+                        <p class="text-[11px] text-slate-400">Mutual debts cancel out instantly.</p>
+                    </div>
+                    <button onclick="app.clearAllDebtsPrompt()" class="px-2.5 py-1 bg-red-950/80 border border-red-500/30 text-red-400 rounded-lg text-xs hover:bg-red-900 transition">
+                        Clear All
+                    </button>
+                </div>
+
+                <div id="debts-container" class="space-y-2.5">
+                    <!-- Dynamic Net Debts List -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 3: LEADERBOARD ================= -->
+        <section id="tab-leaders" class="tab-content hidden space-y-4">
+            <div class="glass-card rounded-2xl p-4 border border-cardBorder shadow-xl space-y-3">
+                <div class="flex justify-between items-center border-b border-cardBorder pb-2">
+                    <h2 class="font-display font-bold text-white text-sm tracking-wide"><i class="fa-solid fa-ranking-star text-amber-400 mr-2"></i>Club Leaderboard</h2>
+                    <span class="text-[10px] font-mono text-emerald-400 uppercase">Net Winnings ($)</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="border-b border-cardBorder text-slate-400 uppercase text-[10px] font-mono">
+                                <th class="py-2">#</th>
+                                <th class="py-2">Player</th>
+                                <th class="py-2 text-center">W - L</th>
+                                <th class="py-2 text-center">Win %</th>
+                                <th class="py-2 text-right">Net Cash</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body" class="divide-y divide-slate-800/60 text-slate-200">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 4: TOURNAMENT MANAGER ================= -->
+        <section id="tab-tourney" class="tab-content hidden space-y-4">
+            <div class="glass-card rounded-2xl p-4 border border-cardBorder shadow-xl space-y-4">
+                <div class="flex justify-between items-center border-b border-cardBorder pb-2">
+                    <h2 class="font-display font-bold text-white text-sm tracking-wide"><i class="fa-solid fa-sitemap text-amber-400 mr-2"></i>2v2 Tournament Manager</h2>
+                    <span id="tourney-status" class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">Setup</span>
+                </div>
+
+                <!-- Setup View -->
+                <div id="tourney-setup-view" class="space-y-3">
+                    <p class="text-xs text-slate-300">Form 4 pairs (8 distinct players) to begin semi-finals.</p>
+                    
+                    <div class="space-y-2 text-xs">
+                        <div class="p-2 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between gap-2">
+                            <span class="font-bold text-amber-400 w-12">Pair 1:</span>
+                            <select id="tourney-t1-p1" class="flex-1 bg-cardBg border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                            <select id="tourney-t1-p2" class="flex-1 bg-cardBg border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                        </div>
+                        <div class="p-2 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between gap-2">
+                            <span class="font-bold text-amber-400 w-12">Pair 2:</span>
+                            <select id="tourney-t2-p1" class="flex-1 bg-cardBg border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                            <select id="tourney-t2-p2" class="flex-1 bg-cardBg border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                        </div>
+                        <div class="p-2 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between gap-2">
+                            <span class="font-bold text-amber-400 w-12">Pair 3:</span>
+                            <select id="tourney-t3-p1" class="flex-1 bg-cardBg border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                            <select id="tourney-t3-p2" class="flex-1 bg-cardBg border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                        </div>
+                        <div class="p-2 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between gap-2">
+                            <span class="font-bold text-amber-400 w-12">Pair 4:</span>
+                            <select id="tourney-t4-p1" class="flex-1 bg-cardBg border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                            <select id="tourney-t4-p2" class="flex-1 bg-cardBg border border-cardBorder rounded-lg p-1.5 text-slate-200"></select>
+                        </div>
+                    </div>
+
+                    <button onclick="app.startTournament()" class="w-full py-2.5 bg-emeraldAccent hover:bg-emeraldHover text-slate-950 font-display font-bold rounded-xl text-xs uppercase tracking-wider transition">
+                        Start Bracket Play
+                    </button>
+                </div>
+
+                <!-- Active Bracket View -->
+                <div id="tourney-bracket-view" class="hidden space-y-4">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-slate-300 uppercase tracking-wider">Bracket Playoff</span>
+                        <button onclick="app.resetTournamentPrompt()" class="text-[11px] text-red-400 hover:underline">Reset Bracket</button>
+                    </div>
+
+                    <!-- Semi Finals -->
+                    <div class="space-y-2">
+                        <span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Semi-Finals</span>
+                        
+                        <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
+                            <div class="flex justify-between text-xs items-center">
+                                <span id="sf1-t1-name" class="font-semibold text-slate-200">Pair 1</span>
+                                <input type="number" id="sf1-t1-score" min="0" max="10" placeholder="Score" class="w-12 bg-cardBg border border-cardBorder text-center rounded p-1 text-amber-400">
+                            </div>
+                            <div class="flex justify-between text-xs items-center">
+                                <span id="sf1-t2-name" class="font-semibold text-slate-200">Pair 2</span>
+                                <input type="number" id="sf1-t2-score" min="0" max="10" placeholder="Score" class="w-12 bg-cardBg border border-cardBorder text-center rounded p-1 text-amber-400">
+                            </div>
+                            <button onclick="app.advanceSemi('sf1')" class="w-full py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700">
+                                Save Semi 1 Winner
+                            </button>
+                        </div>
+
+                        <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
+                            <div class="flex justify-between text-xs items-center">
+                                <span id="sf2-t1-name" class="font-semibold text-slate-200">Pair 3</span>
+                                <input type="number" id="sf2-t1-score" min="0" max="10" placeholder="Score" class="w-12 bg-cardBg border border-cardBorder text-center rounded p-1 text-amber-400">
+                            </div>
+                            <div class="flex justify-between text-xs items-center">
+                                <span id="sf2-t2-name" class="font-semibold text-slate-200">Pair 4</span>
+                                <input type="number" id="sf2-t2-score" min="0" max="10" placeholder="Score" class="w-12 bg-cardBg border border-cardBorder text-center rounded p-1 text-amber-400">
+                            </div>
+                            <button onclick="app.advanceSemi('sf2')" class="w-full py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700">
+                                Save Semi 2 Winner
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Final -->
+                    <div class="space-y-2 border-t border-cardBorder pt-3">
+                        <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                            <i class="fa-solid fa-crown text-amber-400"></i> Finals Match
+                        </span>
+                        
+                        <div class="p-3 bg-gradient-to-br from-amber-950/30 to-cardBg rounded-xl border border-amber-500/30 space-y-2">
+                            <div class="flex justify-between text-xs items-center">
+                                <span id="f-t1-name" class="font-bold text-amber-200">SF1 Winner</span>
+                                <input type="number" id="f-t1-score" min="0" max="10" placeholder="Score" class="w-12 bg-cardBg border border-amber-500/40 text-center rounded p-1 text-amber-400">
+                            </div>
+                            <div class="flex justify-between text-xs items-center">
+                                <span id="f-t2-name" class="font-bold text-amber-200">SF2 Winner</span>
+                                <input type="number" id="f-t2-score" min="0" max="10" placeholder="Score" class="w-12 bg-cardBg border border-amber-500/40 text-center rounded p-1 text-amber-400">
+                            </div>
+                            <button onclick="app.advanceFinal()" class="w-full py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-xs">
+                                Crown Champions
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="tourney-champion-card" class="hidden p-3 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 rounded-xl text-center font-display font-bold text-xs uppercase shadow-lg">
+                        🏆 Tournament Champions: <span id="champ-names">---</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 5: ROSTER & HISTORY ================= -->
+        <section id="tab-roster" class="tab-content hidden space-y-4">
+            <!-- Add Player Card -->
+            <div class="glass-card rounded-2xl p-4 border border-cardBorder shadow-xl space-y-3">
+                <h2 class="font-display font-bold text-white text-sm tracking-wide"><i class="fa-solid fa-users-gear text-amber-400 mr-2"></i>Club Player Roster</h2>
+                
+                <form onsubmit="app.addPlayer(event)" class="flex gap-2">
+                    <input type="text" id="new-player-input" placeholder="Enter player name" required class="flex-1 bg-cardBg text-xs border border-cardBorder rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-goldAccent">
+                    <button type="submit" class="px-4 py-2 bg-goldAccent hover:bg-goldHover text-slate-950 font-display font-bold rounded-xl text-xs transition">
+                        Add Player
+                    </button>
+                </form>
+
+                <div id="roster-list" class="space-y-1.5 pt-2 max-h-40 overflow-y-auto">
+                    <!-- Dynamic Roster Rows -->
+                </div>
+            </div>
+
+            <!-- Full Game Log Card -->
+            <div class="glass-card rounded-2xl p-4 border border-cardBorder shadow-xl space-y-3">
+                <div class="flex justify-between items-center border-b border-cardBorder pb-2">
+                    <h3 class="font-display font-bold text-white text-sm tracking-wide"><i class="fa-solid fa-receipt text-amber-400 mr-2"></i>Match History Log</h3>
+                    <button onclick="app.clearHistoryPrompt()" class="text-[10px] text-slate-500 hover:text-red-400 underline">Clear Log</button>
+                </div>
+                <div id="full-history-log" class="space-y-2 text-xs text-slate-300 max-h-52 overflow-y-auto">
+                    <!-- Full History Log Dynamic Rows -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- CUSTOM MODAL DIALOG -->
+    <div id="custom-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-cardBg border border-cardBorder rounded-2xl p-5 w-full max-w-xs shadow-2xl space-y-4">
+            <h3 id="modal-title" class="font-display font-bold text-amber-400 text-base border-b border-cardBorder pb-2">Notice</h3>
+            <p id="modal-message" class="text-xs text-slate-300">Action message goes here.</p>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button id="modal-btn-cancel" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg">Cancel</button>
+                <button id="modal-btn-confirm" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-lg">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS / CONFIG MODAL -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-cardBg border border-cardBorder rounded-2xl p-5 w-full max-w-xs shadow-2xl space-y-4">
+            <h3 class="font-display font-bold text-amber-400 text-base border-b border-cardBorder pb-2"><i class="fa-solid fa-gear mr-2"></i>Settings & Data</h3>
+            <div class="space-y-2 text-xs">
+                <p class="text-slate-300">Data automatically syncs via Firebase Firestore with real-time browser storage fallback.</p>
+                <button onclick="app.exportData()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-medium flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-download"></i> Export Data Backup (JSON)
+                </button>
+                <button onclick="app.resetAllDataPrompt()" class="w-full py-2 bg-red-950/80 hover:bg-red-900 text-red-400 border border-red-500/30 rounded-xl font-medium flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-trash"></i> Reset Entire App Data
+                </button>
+            </div>
+            <div class="pt-2 flex justify-end">
+                <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="px-4 py-1.5 bg-slate-800 text-slate-300 text-xs rounded-lg">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION STACK -->
+    <div id="toast-container" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-xs px-4 pointer-events-none space-y-2"></div>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="flex-none bg-cardBg/95 border-t border-cardBorder grid grid-cols-5 z-30 shadow-2xl backdrop-blur-md">
+        <button onclick="app.switchTab('play')" id="nav-play" class="tab-btn active flex flex-col items-center justify-center py-2.5 text-slate-400 hover:text-amber-400 transition">
+            <i class="fa-solid fa-gamepad text-base"></i>
+            <span class="text-[10px] font-bold font-display mt-1">Play</span>
+        </button>
+        <button onclick="app.switchTab('debts')" id="nav-debts" class="tab-btn flex flex-col items-center justify-center py-2.5 text-slate-400 hover:text-amber-400 transition">
+            <i class="fa-solid fa-scale-balanced text-base"></i>
+            <span class="text-[10px] font-bold font-display mt-1">Debts</span>
+        </button>
+        <button onclick="app.switchTab('leaders')" id="nav-leaders" class="tab-btn flex flex-col items-center justify-center py-2.5 text-slate-400 hover:text-amber-400 transition">
+            <i class="fa-solid fa-chart-line text-base"></i>
+            <span class="text-[10px] font-bold font-display mt-1">Ranks</span>
+        </button>
+        <button onclick="app.switchTab('tourney')" id="nav-tourney" class="tab-btn flex flex-col items-center justify-center py-2.5 text-slate-400 hover:text-amber-400 transition">
+            <i class="fa-solid fa-trophy text-base"></i>
+            <span class="text-[10px] font-bold font-display mt-1">Bracket</span>
+        </button>
+        <button onclick="app.switchTab('roster')" id="nav-roster" class="tab-btn flex flex-col items-center justify-center py-2.5 text-slate-400 hover:text-amber-400 transition">
+            <i class="fa-solid fa-users text-base"></i>
+            <span class="text-[10px] font-bold font-display mt-1">Roster</span>
+        </button>
+    </nav>
+
+    <!-- MAIN JAVASCRIPT APPLICATION CODE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const DEFAULT_ROSTER = ['Alex', 'Jordan', 'Sam', 'Taylor', 'Chris', 'Morgan', 'Casey', 'Riley'];
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'euchre-club-v2';
+
+        class EuchreClubApp {
+            constructor() {
+                this.state = {
+                    players: [...DEFAULT_ROSTER],
+                    rawDebts: [],
+                    manualSettlements: [],
+                    matches: [],
+                    tourney: {
+                        active: false,
+                        teams: [],
+                        matches: {
+                            sf1: { t1: null, t2: null, s1: null, s2: null, winner: null },
+                            sf2: { t1: null, t2: null, s1: null, s2: null, winner: null },
+                            f: { t1: null, t2: null, s1: null, s2: null, winner: null }
+                        }
+                    }
+                };
+
+                this.playMode = '2v2';
+                this.db = null;
+                this.docRef = null;
+
+                this.initFirebase();
+            }
+
+            async initFirebase() {
+                try {
+                    const firebaseConfig = typeof __firebase_config !== 'undefined' 
+                        ? JSON.parse(__firebase_config) 
+                        : null;
+
+                    if (firebaseConfig) {
+                        const app = initializeApp(firebaseConfig);
+                        const auth = getAuth(app);
+                        this.db = getFirestore(app);
+
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+
+                        this.docRef = doc(this.db, 'artifacts', APP_ID, 'public', 'data', 'club_state');
+
+                        onSnapshot(this.docRef, (snapshot) => {
+                            if (snapshot.exists()) {
+                                this.state = snapshot.data();
+                            } else {
+                                this.saveState();
+                            }
+                            this.setSyncStatus(true);
+                            this.render();
+                        }, (err) => {
+                            console.warn("Firestore access error, falling back to LocalStorage:", err);
+                            this.fallbackLocalStorage();
+                        });
+                    } else {
+                        this.fallbackLocalStorage();
+                    }
+                } catch (e) {
+                    console.warn("Firebase init error, utilizing local storage fallback:", e);
+                    this.fallbackLocalStorage();
+                }
+            }
+
+            fallbackLocalStorage() {
+                this.setSyncStatus(false);
+                const local = localStorage.getItem('euchre_club_state_v2');
+                if (local) {
+                    try { this.state = JSON.parse(local); } catch (e) {}
+                }
+                this.render();
+            }
+
+            setSyncStatus(online) {
+                const dot = document.getElementById('sync-dot');
+                const text = document.getElementById('sync-text');
+                if (online) {
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse";
+                    text.innerText = "Sync Active";
+                    text.className = "text-emerald-300 font-medium text-[10px]";
+                } else {
+                    dot.className = "w-1.5 h-1.5 rounded-full bg-amber-400";
+                    text.innerText = "Local Mode";
+                    text.className = "text-amber-300 font-medium text-[10px]";
+                }
+            }
+
+            async saveState() {
+                if (this.db && this.docRef) {
+                    try {
+                        await setDoc(this.docRef, this.state);
+                    } catch (e) {
+                        console.error("Firestore setDoc failed:", e);
+                    }
+                }
+                localStorage.setItem('euchre_club_state_v2', JSON.stringify(this.state));
+                this.render();
+            }
+
+            switchTab(tabId) {
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+                const target = document.getElementById(`tab-${tabId}`);
+                const navBtn = document.getElementById(`nav-${tabId}`);
+                if (target) target.classList.remove('hidden');
+                if (navBtn) navBtn.classList.add('active');
+            }
+
+            setPlayMode(mode) {
+                this.playMode = mode;
+                const b2 = document.getElementById('btn-mode-2v2');
+                const b3 = document.getElementById('btn-mode-3p');
+                const p2 = document.getElementById('panel-2v2');
+                const p3 = document.getElementById('panel-3p');
+
+                if (mode === '2v2') {
+                    b2.className = "flex-1 py-2 text-xs font-bold font-display rounded-lg transition-all bg-goldAccent text-slate-950 shadow";
+                    b3.className = "flex-1 py-2 text-xs font-bold font-display rounded-lg transition-all text-slate-400 hover:text-white";
+                    p2.classList.remove('hidden');
+                    p3.classList.add('hidden');
+                } else {
+                    b3.className = "flex-1 py-2 text-xs font-bold font-display rounded-lg transition-all bg-goldAccent text-slate-950 shadow";
+                    b2.className = "flex-1 py-2 text-xs font-bold font-display rounded-lg transition-all text-slate-400 hover:text-white";
+                    p3.classList.remove('hidden');
+                    p2.classList.add('hidden');
+                }
+            }
+
+            submit2v2Match() {
+                const t1p1 = document.getElementById('t1-p1').value;
+                const t1p2 = document.getElementById('t1-p2').value;
+                const t2p1 = document.getElementById('t2-p1').value;
+                const t2p2 = document.getElementById('t2-p2').value;
+                const s1 = parseInt(document.getElementById('t1-score').value) || 0;
+                const s2 = parseInt(document.getElementById('t2-score').value) || 0;
+
+                const selected = [t1p1, t1p2, t2p1, t2p2];
+                if (selected.some(p => !p)) {
+                    this.showToast("Please select 4 players for 2v2.", "error");
+                    return;
+                }
+                if (new Set(selected).size !== 4) {
+                    this.showToast("All 4 players must be distinct.", "error");
+                    return;
+                }
+                if (s1 === s2) {
+                    this.showToast("Matches cannot end in a tie.", "error");
+                    return;
+                }
+
+                const winners = s1 > s2 ? [t1p1, t1p2] : [t2p1, t2p2];
+                const losers = s1 > s2 ? [t2p1, t2p2] : [t1p1, t1p2];
+
+                // Payout: $5 from each loser to each winner ($10 total transfer)
+                const debts = [];
+                losers.forEach(loser => {
+                    winners.forEach(winner => {
+                        debts.push({
+                            id: 'd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                            debtor: loser,
+                            creditor: winner,
+                            amount: 5,
+                            date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        });
+                    });
+                });
+
+                this.state.rawDebts.push(...debts);
+                this.state.matches.unshift({
+                    type: '2v2',
+                    teamA: [t1p1, t1p2],
+                    teamB: [t2p1, t2p2],
+                    scoreA: s1,
+                    scoreB: s2,
+                    winners,
+                    losers,
+                    timestamp: new Date().toLocaleString()
+                });
+
+                document.getElementById('t1-score').value = "0";
+                document.getElementById('t2-score').value = "0";
+
+                this.saveState();
+                this.showToast(`Logged! ${winners.join(' & ')} won ${Math.max(s1,s2)}-${Math.min(s1,s2)}.`, "success");
+            }
+
+            submit3pMatch() {
+                const p1 = document.getElementById('cut-p1').value;
+                const p2 = document.getElementById('cut-p2').value;
+                const p3 = document.getElementById('cut-p3').value;
+                const s1 = parseInt(document.getElementById('cut-s1').value) || 0;
+                const s2 = parseInt(document.getElementById('cut-s2').value) || 0;
+                const s3 = parseInt(document.getElementById('cut-s3').value) || 0;
+
+                const players = [p1, p2, p3];
+                if (players.some(p => !p)) {
+                    this.showToast("Select 3 distinct players.", "error");
+                    return;
+                }
+                if (new Set(players).size !== 3) {
+                    this.showToast("All 3 players must be distinct.", "error");
+                    return;
+                }
+
+                const sorted = [
+                    { player: p1, score: s1 },
+                    { player: p2, score: s2 },
+                    { player: p3, score: s3 }
+                ].sort((a,b) => b.score - a.score);
+
+                if (sorted[0].score === sorted[1].score) {
+                    this.showToast("Cutthroat requires a clear 1st place winner.", "error");
+                    return;
+                }
+
+                const winner = sorted[0].player;
+                const losers = [sorted[1].player, sorted[2].player];
+
+                const debts = losers.map(loser => ({
+                    id: 'd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    debtor: loser,
+                    creditor: winner,
+                    amount: 2,
+                    date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }));
+
+                this.state.rawDebts.push(...debts);
+                this.state.matches.unshift({
+                    type: '3p Cutthroat',
+                    scores: `${p1}:${s1} | ${p2}:${s2} | ${p3}:${s3}`,
+                    winner,
+                    losers,
+                    timestamp: new Date().toLocaleString()
+                });
+
+                document.getElementById('cut-s1').value = "0";
+                document.getElementById('cut-s2').value = "0";
+                document.getElementById('cut-s3').value = "0";
+
+                this.saveState();
+                this.showToast(`${winner} won Cutthroat! $2 recorded from each.`, "success");
+            }
+
+            calculateNettedDebts() {
+                const matrix = {};
+                this.state.players.forEach(p1 => {
+                    matrix[p1] = {};
+                    this.state.players.forEach(p2 => { matrix[p1][p2] = 0; });
+                });
+
+                this.state.rawDebts.forEach(d => {
+                    if (matrix[d.debtor] && matrix[d.debtor][d.creditor] !== undefined) {
+                        matrix[d.debtor][d.creditor] += d.amount;
+                    }
+                });
+
+                (this.state.manualSettlements || []).forEach(s => {
+                    if (matrix[s.debtor] && matrix[s.debtor][s.creditor] !== undefined) {
+                        matrix[s.debtor][s.creditor] -= s.amount;
+                    }
+                });
+
+                const netted = [];
+                const players = this.state.players;
+
+                for (let i = 0; i < players.length; i++) {
+                    for (let j = i + 1; j < players.length; j++) {
+                        const p1 = players[i];
+                        const p2 = players[j];
+
+                        const p1OwesP2 = matrix[p1][p2] || 0;
+                        const p2OwesP1 = matrix[p2][p1] || 0;
+
+                        const diff = p1OwesP2 - p2OwesP1;
+                        if (diff > 0) {
+                            netted.push({ debtor: p1, creditor: p2, amount: diff });
+                        } else if (diff < 0) {
+                            netted.push({ debtor: p2, creditor: p1, amount: Math.abs(diff) });
+                        }
+                    }
+                }
+
+                return netted;
+            }
+
+            settlePairDebt(debtor, creditor, amount) {
+                if (!this.state.manualSettlements) this.state.manualSettlements = [];
+                this.state.manualSettlements.push({
+                    debtor, creditor, amount, timestamp: new Date().toLocaleString()
+                });
+                this.saveState();
+                this.showToast(`Marked $${amount} from ${debtor} to ${creditor} as Paid!`, "success");
+            }
+
+            clearAllDebtsPrompt() {
+                this.showConfirmModal("Clear All Debts", "Clear all active debt balances across the club?", () => {
+                    this.state.rawDebts = [];
+                    this.state.manualSettlements = [];
+                    this.saveState();
+                    this.showToast("All debts cleared.", "info");
+                });
+            }
+
+            startTournament() {
+                const pairs = [
+                    [document.getElementById('tourney-t1-p1').value, document.getElementById('tourney-t1-p2').value],
+                    [document.getElementById('tourney-t2-p1').value, document.getElementById('tourney-t2-p2').value],
+                    [document.getElementById('tourney-t3-p1').value, document.getElementById('tourney-t3-p2').value],
+                    [document.getElementById('tourney-t4-p1').value, document.getElementById('tourney-t4-p2').value],
+                ];
+
+                const flat = pairs.flat();
+                if (flat.some(p => !p)) {
+                    this.showToast("Select all 8 players for 4 tournament pairs.", "error");
+                    return;
+                }
+                if (new Set(flat).size !== 8) {
+                    this.showToast("All 8 tournament players must be distinct.", "error");
+                    return;
+                }
+
+                this.state.tourney = {
+                    active: true,
+                    teams: pairs,
+                    matches: {
+                        sf1: { t1: pairs[0], t2: pairs[1], s1: null, s2: null, winner: null },
+                        sf2: { t1: pairs[2], t2: pairs[3], s1: null, s2: null, winner: null },
+                        f: { t1: null, t2: null, s1: null, s2: null, winner: null }
+                    }
+                };
+
+                this.saveState();
+                this.showToast("Tournament started!", "success");
+            }
+
+            advanceSemi(key) {
+                const m = this.state.tourney.matches[key];
+                if (!m || !m.t1 || !m.t2) return;
+
+                const s1 = parseInt(document.getElementById(`${key}-t1-score`).value);
+                const s2 = parseInt(document.getElementById(`${key}-t2-score`).value);
+
+                if (isNaN(s1) || isNaN(s2) || s1 === s2) {
+                    this.showToast("Enter valid non-tying scores.", "error");
+                    return;
+                }
+
+                m.s1 = s1;
+                m.s2 = s2;
+                m.winner = s1 > s2 ? m.t1 : m.t2;
+
+                if (key === 'sf1') this.state.tourney.matches.f.t1 = m.winner;
+                if (key === 'sf2') this.state.tourney.matches.f.t2 = m.winner;
+
+                this.saveState();
+                this.showToast(`${m.winner.join(' & ')} advanced to Finals!`, "success");
+            }
+
+            advanceFinal() {
+                const f = this.state.tourney.matches.f;
+                if (!f || !f.t1 || !f.t2) {
+                    this.showToast("Finalists not set yet.", "error");
+                    return;
+                }
+
+                const s1 = parseInt(document.getElementById('f-t1-score').value);
+                const s2 = parseInt(document.getElementById('f-t2-score').value);
+
+                if (isNaN(s1) || isNaN(s2) || s1 === s2) {
+                    this.showToast("Enter valid non-tying final scores.", "error");
+                    return;
+                }
+
+                f.s1 = s1;
+                f.s2 = s2;
+                f.winner = s1 > s2 ? f.t1 : f.t2;
+
+                this.saveState();
+                this.showToast(`👑 ${f.winner.join(' & ')} are the Champions!`, "success");
+            }
+
+            resetTournamentPrompt() {
+                this.showConfirmModal("Reset Tournament", "Reset active tournament bracket?", () => {
+                    this.state.tourney = {
+                        active: false,
+                        teams: [],
+                        matches: {
+                            sf1: { t1: null, t2: null, s1: null, s2: null, winner: null },
+                            sf2: { t1: null, t2: null, s1: null, s2: null, winner: null },
+                            f: { t1: null, t2: null, s1: null, s2: null, winner: null }
+                        }
+                    };
+                    this.saveState();
+                    this.showToast("Tournament reset.", "info");
+                });
+            }
+
+            addPlayer(e) {
+                e.preventDefault();
+                const input = document.getElementById('new-player-input');
+                const name = input.value.trim();
+                if (!name) return;
+
+                if (this.state.players.includes(name)) {
+                    this.showToast("Player already exists in roster.", "error");
+                    return;
+                }
+
+                this.state.players.push(name);
+                input.value = '';
+                this.saveState();
+                this.showToast(`Added ${name} to roster.`, "success");
+            }
+
+            removePlayerPrompt(name) {
+                this.showConfirmModal("Remove Player", `Remove ${name} from roster?`, () => {
+                    this.state.players = this.state.players.filter(p => p !== name);
+                    this.saveState();
+                    this.showToast(`Removed ${name}.`, "info");
+                });
+            }
+
+            clearHistoryPrompt() {
+                this.showConfirmModal("Clear Game Log", "Clear game history logs?", () => {
+                    this.state.matches = [];
+                    this.saveState();
+                    this.showToast("History log cleared.", "info");
+                });
+            }
+
+            resetAllDataPrompt() {
+                this.showConfirmModal("Reset Club Data", "Reset roster, debts, and history to defaults?", () => {
+                    this.state = {
+                        players: [...DEFAULT_ROSTER],
+                        rawDebts: [],
+                        manualSettlements: [],
+                        matches: [],
+                        tourney: {
+                            active: false,
+                            teams: [],
+                            matches: {
+                                sf1: { t1: null, t2: null, s1: null, s2: null, winner: null },
+                                sf2: { t1: null, t2: null, s1: null, s2: null, winner: null },
+                                f: { t1: null, t2: null, s1: null, s2: null, winner: null }
+                            }
+                        }
+                    };
+                    this.saveState();
+                    document.getElementById('settings-modal').classList.add('hidden');
+                    this.showToast("All club data reset.", "info");
+                });
+            }
+
+            exportData() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state, null, 2));
+                const dlAnchorElem = document.createElement('a');
+                dlAnchorElem.setAttribute("href", dataStr);
+                dlAnchorElem.setAttribute("download", `euchre_club_backup_${Date.now()}.json`);
+                dlAnchorElem.click();
+            }
+
+            openSettingsModal() {
+                document.getElementById('settings-modal').classList.remove('hidden');
+            }
+
+            showConfirmModal(title, msg, onConfirm) {
+                const modal = document.getElementById('custom-modal');
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-message').innerText = msg;
+
+                const btnConfirm = document.getElementById('modal-btn-confirm');
+                const btnCancel = document.getElementById('modal-btn-cancel');
+
+                btnConfirm.onclick = () => {
+                    if (onConfirm) onConfirm();
+                    modal.classList.add('hidden');
+                };
+                btnCancel.onclick = () => modal.classList.add('hidden');
+                modal.classList.remove('hidden');
+            }
+
+            showToast(msg, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                
+                const bg = type === 'success' ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-200' 
+                         : type === 'error' ? 'bg-red-950/90 border-red-500/50 text-red-200' 
+                         : 'bg-slate-900/90 border-amber-500/50 text-amber-200';
+
+                toast.className = `animate-toast p-3 rounded-xl border ${bg} backdrop-blur-md shadow-2xl text-xs flex items-center justify-between font-medium pointer-events-auto`;
+                toast.innerHTML = `
+                    <span>${msg}</span>
+                    <i class="fa-solid fa-xmark text-xs opacity-60 hover:opacity-100 cursor-pointer ml-2" onclick="this.parentElement.remove()"></i>
+                `;
+
+                container.appendChild(toast);
+                setTimeout(() => {
+                    if (toast.parentElement) toast.remove();
+                }, 3500);
+            }
+
+            render() {
+                this.renderDropdowns();
+                this.renderDebts();
+                this.renderLeaderboard();
+                this.renderTournament();
+                this.renderRoster();
+                this.renderHistory();
+            }
+
+            renderDropdowns() {
+                const makeOpts = () => '<option value="">-- Player --</option>' + 
+                    this.state.players.map(p => `<option value="${p}">${p}</option>`).join('');
+
+                const ids = [
+                    't1-p1', 't1-p2', 't2-p1', 't2-p2',
+                    'cut-p1', 'cut-p2', 'cut-p3',
+                    'tourney-t1-p1', 'tourney-t1-p2',
+                    'tourney-t2-p1', 'tourney-t2-p2',
+                    'tourney-t3-p1', 'tourney-t3-p2',
+                    'tourney-t4-p1', 'tourney-t4-p2'
+                ];
+
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        const cur = el.value;
+                        el.innerHTML = makeOpts();
+                        if (this.state.players.includes(cur)) el.value = cur;
+                    }
+                });
+            }
+
+            renderDebts() {
+                const container = document.getElementById('debts-container');
+                const debts = this.calculateNettedDebts();
+
+                if (debts.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-6 text-center text-emerald-400/70 bg-emerald-950/20 rounded-xl border border-emerald-900/40">
+                            <i class="fa-solid fa-circle-check text-2xl mb-2 text-emerald-400"></i>
+                            <p class="text-xs font-semibold">All debts are fully squared up!</p>
+                        </div>`;
+                    return;
+                }
+
+                container.innerHTML = debts.map(d => `
+                    <div class="p-3 bg-slate-900/60 border border-cardBorder rounded-xl flex items-center justify-between shadow">
+                        <div class="space-y-0.5">
+                            <div class="text-xs font-semibold text-slate-200">
+                                <span class="text-red-400 font-bold">${d.debtor}</span> 
+                                <i class="fa-solid fa-arrow-right text-[10px] mx-1 text-goldAccent"></i> 
+                                <span class="text-emerald-400 font-bold">${d.creditor}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">Netted Balance</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-mono font-bold text-goldAccent text-xs bg-cardBg px-2 py-1 rounded-lg border border-goldAccent/30">$${d.amount}</span>
+                            <button onclick="app.settlePairDebt('${d.debtor}', '${d.creditor}', ${d.amount})" class="px-2.5 py-1 bg-emeraldAccent hover:bg-emeraldHover text-slate-950 font-bold text-[11px] rounded-lg transition shadow">
+                                Mark Paid
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderLeaderboard() {
+                const tbody = document.getElementById('leaderboard-body');
+                const stats = {};
+
+                this.state.players.forEach(p => {
+                    stats[p] = { wins: 0, losses: 0, netEarnings: 0 };
+                });
+
+                this.state.matches.forEach(m => {
+                    if (m.type === '2v2') {
+                        m.winners.forEach(w => { if (stats[w]) { stats[w].wins++; stats[w].netEarnings += 5; } });
+                        m.losers.forEach(l => { if (stats[l]) { stats[l].losses++; stats[l].netEarnings -= 5; } });
+                    } else if (m.type === '3p Cutthroat') {
+                        if (stats[m.winner]) { stats[m.winner].wins++; stats[m.winner].netEarnings += 4; }
+                        m.losers.forEach(l => { if (stats[l]) { stats[l].losses++; stats[l].netEarnings -= 2; } });
+                    }
+                });
+
+                const sorted = Object.keys(stats).map(p => {
+                    const total = stats[p].wins + stats[p].losses;
+                    const pct = total > 0 ? Math.round((stats[p].wins / total) * 100) : 0;
+                    return { player: p, winPct: pct, ...stats[p] };
+                }).sort((a, b) => b.netEarnings - a.netEarnings || b.winPct - a.winPct);
+
+                if (sorted.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500">No stats.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = sorted.map((item, idx) => {
+                    const isTop = idx === 0 && item.netEarnings > 0;
+                    const netColor = item.netEarnings > 0 ? 'text-emerald-400 font-bold' : item.netEarnings < 0 ? 'text-red-400 font-bold' : 'text-slate-400';
+                    return `
+                        <tr class="hover:bg-slate-800/30 transition">
+                            <td class="py-2.5 font-mono text-slate-400">${idx + 1}</td>
+                            <td class="py-2.5 font-semibold text-slate-100 flex items-center gap-1.5">
+                                ${item.player}
+                                ${isTop ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded-full"><i class="fa-solid fa-crown mr-0.5"></i> #1</span>' : ''}
+                            </td>
+                            <td class="py-2.5 text-center font-mono text-slate-300">${item.wins}-${item.losses}</td>
+                            <td class="py-2.5 text-center font-mono text-slate-400">${item.winPct}%</td>
+                            <td class="py-2.5 text-right font-mono ${netColor}">
+                                ${item.netEarnings >= 0 ? '+$' : '-$'}${Math.abs(item.netEarnings)}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            renderTournament() {
+                const setupView = document.getElementById('tourney-setup-view');
+                const bracketView = document.getElementById('tourney-bracket-view');
+                const statusBadge = document.getElementById('tourney-status');
+                const t = this.state.tourney;
+
+                if (!t || !t.active) {
+                    setupView.classList.remove('hidden');
+                    bracketView.classList.add('hidden');
+                    statusBadge.innerText = "Setup";
+                    return;
+                }
+
+                setupView.classList.add('hidden');
+                bracketView.classList.remove('hidden');
+                statusBadge.innerText = "Active Bracket";
+
+                document.getElementById('sf1-t1-name').innerText = t.matches.sf1.t1.join(' & ');
+                document.getElementById('sf1-t2-name').innerText = t.matches.sf1.t2.join(' & ');
+                if (t.matches.sf1.s1 !== null) document.getElementById('sf1-t1-score').value = t.matches.sf1.s1;
+                if (t.matches.sf1.s2 !== null) document.getElementById('sf1-t2-score').value = t.matches.sf1.s2;
+
+                document.getElementById('sf2-t1-name').innerText = t.matches.sf2.t1.join(' & ');
+                document.getElementById('sf2-t2-name').innerText = t.matches.sf2.t2.join(' & ');
+                if (t.matches.sf2.s1 !== null) document.getElementById('sf2-t1-score').value = t.matches.sf2.s1;
+                if (t.matches.sf2.s2 !== null) document.getElementById('sf2-t2-score').value = t.matches.sf2.s2;
+
+                document.getElementById('f-t1-name').innerText = t.matches.f.t1 ? t.matches.f.t1.join(' & ') : 'SF1 Winner';
+                document.getElementById('f-t2-name').innerText = t.matches.f.t2 ? t.matches.f.t2.join(' & ') : 'SF2 Winner';
+                if (t.matches.f.s1 !== null) document.getElementById('f-t1-score').value = t.matches.f.s1;
+                if (t.matches.f.s2 !== null) document.getElementById('f-t2-score').value = t.matches.f.s2;
+
+                const champCard = document.getElementById('tourney-champion-card');
+                if (t.matches.f.winner) {
+                    champCard.classList.remove('hidden');
+                    document.getElementById('champ-names').innerText = t.matches.f.winner.join(' & ');
+                } else {
+                    champCard.classList.add('hidden');
+                }
+            }
+
+            renderRoster() {
+                const container = document.getElementById('roster-list');
+                if (this.state.players.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-slate-500 italic">No players in roster.</p>`;
+                    return;
+                }
+
+                container.innerHTML = this.state.players.map(p => `
+                    <div class="p-2 bg-slate-900/60 rounded-xl border border-cardBorder flex items-center justify-between text-xs">
+                        <span class="font-medium text-slate-200"><i class="fa-solid fa-user-circle text-goldAccent mr-2"></i>${p}</span>
+                        <button onclick="app.removePlayerPrompt('${p}')" class="text-red-400 hover:text-red-300 px-2 py-0.5 rounded-lg hover:bg-red-950/40 text-[11px] transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            renderHistory() {
+                const qLog = document.getElementById('quick-log');
+                const fLog = document.getElementById('full-history-log');
+
+                if (this.state.matches.length === 0) {
+                    const empty = `<p class="text-xs text-slate-500 italic">No games logged yet.</p>`;
+                    qLog.innerHTML = empty;
+                    fLog.innerHTML = empty;
+                    return;
+                }
+
+                const renderItem = (m) => `
+                    <div class="p-2.5 bg-slate-900/60 rounded-xl border border-cardBorder space-y-1">
+                        <div class="flex justify-between items-center text-[11px]">
+                            <span class="font-bold font-display text-goldAccent uppercase">${m.type}</span>
+                            <span class="text-[10px] text-slate-500">${m.timestamp.split(',')[1] || m.timestamp}</span>
+                        </div>
+                        <div class="text-xs text-slate-200">
+                            ${m.type === '2v2' 
+                                ? `<span class="text-emerald-400 font-medium">${m.winners.join(' & ')}</span> def. <span class="text-red-400/80">${m.losers.join(' & ')}</span> (${Math.max(m.scoreA, m.scoreB)}-${Math.min(m.scoreA, m.scoreB)})`
+                                : `<span class="text-emerald-400 font-medium">${m.winner}</span> won Cutthroat (${m.scores})`
+                            }
+                        </div>
+                    </div>
+                `;
+
+                qLog.innerHTML = this.state.matches.slice(0, 2).map(renderItem).join('');
+                fLog.innerHTML = this.state.matches.map(renderItem).join('');
+            }
+        }
+
+        // Initialize application instance on DOM load
+        window.addEventListener('DOMContentLoaded', () => {
+            window.app = new EuchreClubApp();
+        });
+    </script>
+</body>
+</html>
